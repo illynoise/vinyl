@@ -1,0 +1,9 @@
+{
+  "_comment": "One entry per source recording. id = profile name. trim_start/trim_end (seconds) skip needle-drop / fade regions; silence is trimmed automatically.",
+  "recordings": [
+    {"id": "asmr",    "file": "recordings/ASMR_Vinyl_Crackle___Record_Player_White_Noise___Vinyl_Crackling_128k.mp3"},
+    {"id": "burgh",   "file": "recordings/Vinyl_Crackle_Sound_Effect___BurghRecords_Free_Sound_Effects_WAV_128k.m4a", "trim_start": 2.0},
+    {"id": "noise02", "file": "recordings/Vinyl_Noise_Sample_02_128k.mp3"},
+    {"id": "needle",  "file": "recordings/Vinyl_Record_Needle_Static_Sound_Effect_128k.mp3"}
+  ]
+}

@@ -1,0 +1,8 @@
+build/
+dist/
+test-output/
+JUCE/
+stage1/library/
+stage1/renders/
+stage1/ab_page/audio/
+__pycache__/

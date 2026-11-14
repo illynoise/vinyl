@@ -1,0 +1,52 @@
+# Builds Vinyl Studio on macOS (VST3 + AU, universal, .pkg installer) and Windows (VST3 installer).
+# Every push: download the results from the run's "Artifacts" section.
+# Push a tag like v1.0.0: the installers are also attached to a GitHub Release.
+name: build
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install ninja
+      - name: Install pluginval
+        run: |
+          curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+          unzip -q pluginval.zip && sudo mv pluginval.app /Applications/
+      - run: ./build.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: VinylStudio-macOS
+          path: |
+            dist/*/*.pkg
+            dist/*/*report*.txt
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: dist/*/*.pkg
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - shell: cmd
+        run: |
+          set NO_INSTALL=1
+          call build.bat
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: VinylStudio-Windows
+          path: |
+            dist/*/*Setup.exe
+            dist/*.zip
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            dist/*/*Setup.exe
+            dist/*.zip

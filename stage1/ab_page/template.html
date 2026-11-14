@@ -1,0 +1,134 @@
+<title>Vinyl Studio Crackle Test</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: one narrow column, a single raised "console panel" for the test, plain list below */
+:root{
+  --bg:#e9ece7; --panel:#f7f8f5; --ink:#1d2320; --muted:#5d6861; --line:#c5ccc4;
+  --amber:#b96a00; --amber-ink:#fff; --good:#2f7d4f; --bad:#b3402e;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#161a18; --panel:#202623; --ink:#e6ebe6; --muted:#97a39b; --line:#39423d;
+  --amber:#f0a030; --amber-ink:#1a1206; --good:#6fc48f; --bad:#ef8873; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#161a18; --panel:#202623; --ink:#e6ebe6; --muted:#97a39b; --line:#39423d;
+  --amber:#f0a030; --amber-ink:#1a1206; --good:#6fc48f; --bad:#ef8873; color-scheme:dark }
+body{background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--body)}
+.wrap{max-width:46rem;margin:0 auto;padding-block:2rem 4rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:2.25rem}
+h1{font:700 1.9rem/1.15 var(--display);margin:0;text-wrap:balance}
+h2{font:700 1.2rem/1.2 var(--display);margin:0 0 .6rem}
+p{margin:0;max-width:65ch}
+.eyebrow{font:500 .72rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+.lead{color:var(--muted);margin-top:.6rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1.25rem;display:flex;flex-direction:column;gap:1rem}
+.row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+.count{font:500 .85rem var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--amber);width:0}
+button{font:600 1rem var(--body);border-radius:4px;border:1px solid var(--line);background:transparent;color:var(--ink);padding:.7rem 1.1rem;cursor:pointer;min-width:0}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}
+.play{background:var(--amber);color:var(--amber-ink);border-color:var(--amber);flex:1 1 100%}
+.ans{flex:1 1 9rem}
+.hint{font-size:.85rem;color:var(--muted)}
+.score{font:700 2.4rem/1 var(--display);font-variant-numeric:tabular-nums}
+.verdict{font-weight:600}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:.4rem .6rem .4rem 0;border-bottom:1px solid var(--line)}
+th{font:500 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ok{color:var(--good)} .no{color:var(--bad)}
+.renders{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.renders li{padding:.9rem 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.renders .name{font:500 .8rem var(--mono);color:var(--muted);overflow-wrap:anywhere}
+audio{width:100%;height:36px}
+</style>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Vinyl Studio / Stage 1 / crackle engine</div>
+    <h1>Can you tell generated crackle from the real records?</h1>
+    <p class="lead">Twenty 6-second clips, one at a time. Ten are cut straight from your four recordings, ten come from the generator using the matching profile. Use headphones. A score near 10 of 20 means the generator passes.</p>
+  </header>
+
+  <section class="panel" id="test">
+    <div class="row" style="justify-content:space-between"><span class="count" id="count">Clip 1 of 20</span><span class="count" id="plays"></span></div>
+    <div class="bar"><i id="prog"></i></div>
+    <div class="row">
+      <button class="play" id="play">Play clip</button>
+      <button class="ans" id="real" disabled>Real record</button>
+      <button class="ans" id="gen" disabled>Generated</button>
+    </div>
+    <p class="hint">Answers unlock after the first play. Replay as often as you like. Nothing is revealed until the end.</p>
+  </section>
+
+  <section class="panel" id="result" hidden>
+    <div class="eyebrow">Result</div>
+    <div class="score" id="score"></div>
+    <p class="verdict" id="verdict"></p>
+    <p class="hint" id="pv"></p>
+    <div class="tw"><table id="tbl"></table></div>
+    <div class="row"><button id="again">Run again in a new order</button></div>
+  </section>
+
+  <section>
+    <h2>Test renders, 30 seconds each</h2>
+    <p class="lead" style="margin:0 0 .8rem">Generator output at different settings. These are not part of the blind test.</p>
+    <ul class="renders" id="renders"></ul>
+  </section>
+</div>
+<script>
+/*DATA*/
+const KEY = JSON.parse(atob(DATA.k));           // [recording, 1 = real]
+const NAMES = {needle:"Needle static", noise02:"Noise sample 02", asmr:"ASMR crackle", burgh:"BurghRecords"};
+const $ = id => document.getElementById(id);
+const player = new Audio();
+let order, pos, answers, played;
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function start(){
+  order = shuffle(KEY.map((_,i)=>i)); pos = 0; answers = [];
+  $("result").hidden = true; $("test").hidden = false; show();
+}
+function show(){
+  played = 0; player.pause();
+  player.src = "audio/clip" + String(order[pos]+1).padStart(2,"0") + ".mp3";
+  $("count").textContent = "Clip " + (pos+1) + " of " + KEY.length;
+  $("prog").style.width = (100*pos/KEY.length) + "%";
+  $("plays").textContent = ""; $("real").disabled = $("gen").disabled = true;
+  $("play").textContent = "Play clip";
+}
+$("play").onclick = () => {
+  player.currentTime = 0;
+  player.play().then(() => { played++; $("plays").textContent = "played " + played + "x"; $("real").disabled = $("gen").disabled = false; $("play").textContent = "Play again"; })
+    .catch(() => { $("plays").textContent = "Could not play this clip. Try again."; });
+};
+function answer(saidReal){
+  answers.push({i: order[pos], saidReal}); pos++;
+  if (pos < KEY.length) show(); else finish();
+}
+$("real").onclick = () => answer(1);
+$("gen").onclick = () => answer(0);
+$("again").onclick = start;
+
+function binomP(k, n){            // two-sided test against guessing
+  const pmf = []; let c = 1;
+  for (let i=0;i<=n;i++){ pmf.push(c*Math.pow(.5,n)); c = c*(n-i)/(i+1); }
+  return Math.min(1, pmf.filter(p => p <= pmf[k]+1e-12).reduce((a,b)=>a+b,0));
+}
+function finish(){
+  player.pause();
+  const n = answers.length, right = answers.filter(a => a.saidReal === KEY[a.i][1]).length, p = binomP(right, n);
+  $("score").textContent = right + " / " + n + " correct";
+  $("verdict").textContent = p < .05 && right > n/2 ? "You can reliably tell them apart. Stage 1 needs another iteration."
+    : p < .05 ? "You hear a difference, but you take the generated clips for the real ones."
+    : "No better than guessing at this sample size. The generator passes.";
+  $("pv").textContent = "Chance of a result this far from 10/20 by pure guessing: " + (p < .001 ? "under 0.1%" : (100*p).toFixed(1) + "%") + ". Below 5% counts as a reliable difference.";
+  let h = "<tr><th>#</th><th>Recording</th><th>It was</th><th>You said</th><th></th></tr>";
+  answers.forEach((a, j) => { const t = KEY[a.i], ok = a.saidReal === t[1];
+    h += "<tr><td>"+(j+1)+"</td><td>"+NAMES[t[0]]+"</td><td>"+(t[1]?"Real":"Generated")+"</td><td>"+(a.saidReal?"Real":"Generated")+"</td><td class='"+(ok?"ok":"no")+"'>"+(ok?"correct":"wrong")+"</td></tr>"; });
+  $("tbl").innerHTML = h; $("test").hidden = true; $("result").hidden = false;
+}
+$("renders").innerHTML = DATA.renders.map(r => "<li><span class='name'>"+r[0]+".wav</span><span>"+r[1]+"</span><audio controls preload='none' src='audio/"+r[0]+".mp3'></audio></li>").join("");
+start();
+</script>
